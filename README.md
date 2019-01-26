@@ -27,7 +27,8 @@ Installation
 
 * Add the following code to the LocalSeetings.php
 -------------------------------------------------------
-//PDFHandler
+//PDFHandler Extension
+
 $wgEnableUploads = true;
 
 $wgAllowJavaUploads = true;
