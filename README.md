@@ -29,6 +29,8 @@ Installation
 -------------------------------------------------------
 //PDFHandler Extension
 
+wfLoadExtension( 'PdfHandler' );
+
 $wgEnableUploads = true;
 
 $wgAllowJavaUploads = true;
