@@ -22,6 +22,7 @@
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\Shell\Shell;
 use UtfNormal\Validator;
+use Wikimedia\XMPReader\Reader as XMPReader;
 
 /**
  * inspired by djvuimage from Brion Vibber
@@ -38,7 +39,7 @@ class PdfImage {
 	/**
 	 * @param string $filename
 	 */
-	function __construct( $filename ) {
+	public function __construct( $filename ) {
 		$this->mFilename = $filename;
 	}
 
@@ -117,6 +118,7 @@ class PdfImage {
 	 */
 	public function retrieveMetaData() {
 		global $wgPdfInfo, $wgPdftoText;
+
 		if ( $wgPdfInfo ) {
 			// Note in poppler 0.26 the -meta and page data options worked together,
 			// but as of poppler 0.48 they must be queried separately.
@@ -126,7 +128,7 @@ class PdfImage {
 			$resultMeta = shell_exec(escapeshellcmd($cmdMeta));
 			//$resultMeta = Shell::command( $cmdMeta )
 			//	->execute();
-
+			
 			$cmdPages = "pdfinfo.exe -l 9999999 " . $this->mFilename;	
 			
 			$resultPages = shell_exec(escapeshellcmd($cmdPages));
@@ -139,6 +141,7 @@ class PdfImage {
 		} else {
 			$data = null;
 		}
+
 		// Read text layer
 		if ( isset( $wgPdftoText ) ) {
 			
@@ -150,7 +153,6 @@ class PdfImage {
 			$txt = file_get_contents($pdftotextoutputpath, true);
 			
 			unlink($pdftotextoutputpath);
-			
 			if ( $retval == 0 ) {
 				$txt = str_replace( "\r\n", "\n", $txt );
 				$pages = explode( "\f", $txt );
@@ -186,6 +188,7 @@ class PdfImage {
 		foreach ( $lines as $line ) {
 			if ( $inMetadata ) {
 				// Handle XMP differently due to diffence in line break
+				// @phan-suppress-next-line PhanTypeInvalidDimOffset weird loop
 				$data['xmp'] .= "\n$line";
 				continue;
 			}
@@ -308,11 +311,9 @@ class PdfImage {
 		}
 		$meta->addMetadata( $items, 'native' );
 
-		if ( isset( $data['xmp'] ) && function_exists( 'xml_parser_create_ns' ) ) {
-			// func exists verifies that the xml extension required for XMPReader
-			// is present (Almost always is present)
+		if ( isset( $data['xmp'] ) && XMPReader::isSupported() ) {
 			// @todo: This only handles generic xmp properties. Would be improved
-			// by handling pdf xmp properties (pdf and pdfx) via XMPInfo hook.
+			// by handling pdf xmp properties (pdf and pdfx) via a hook.
 			$xmp = new XMPReader( LoggerFactory::getInstance( 'XMP' ) );
 			$xmp->parse( $data['xmp'] );
 			$xmpRes = $xmp->getResults();
